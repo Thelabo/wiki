@@ -1,6 +1,5 @@
 /*
 
-*/
  */
 package main
 
@@ -13,7 +12,7 @@ import (
 
 type Page struct {
 	Title string
-	Body []byte
+	Body  []byte
 }
 
 func (p *Page) save() error {
@@ -28,16 +27,21 @@ func (p *Page) defaults() {
 
 func renderTemplate(w http.ResponseWriter, useTemplate string, p *Page) {
 	t, _ := template.ParseFiles(useTemplate + ".html")
-	t.Execute(w,p)
+	t.Execute(w, p)
 }
 
-func viewHandler(w http.ResponseWriter, r *http.Request)  {
+func viewHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Path[len("/view/"):]
-	p, _ := loadPage(title)
-	renderTemplate(w,"view",p)
+	p, err := loadPage(title)
+	if err != nil {
+		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
+		return
+	}
+
+	renderTemplate(w, "view", p)
 }
 
-func editHandler(w http.ResponseWriter, r *http.Request)  {
+func editHandler(w http.ResponseWriter, r *http.Request) {
 	title := r.URL.Path[len("/edit/"):]
 	p, err := loadPage(title)
 	if err != nil {
@@ -45,16 +49,15 @@ func editHandler(w http.ResponseWriter, r *http.Request)  {
 			Title: title,
 		}
 	}
-	renderTemplate(w,"edit",p)
+	renderTemplate(w, "edit", p)
 }
-
 
 func loadPage(title string) (*Page, error) {
 	filename := title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 
 	return &Page{
@@ -63,9 +66,8 @@ func loadPage(title string) (*Page, error) {
 	}, nil
 }
 
-
 func main() {
-	http.HandleFunc("/view/",viewHandler)
-	http.HandleFunc("/edit/",editHandler)
-	log.Fatal(http.ListenAndServe(":8080",nil))
+	http.HandleFunc("/view/", viewHandler)
+	http.HandleFunc("/edit/", editHandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
